@@ -51,6 +51,12 @@ THE SOFTWARE.
 #define PSTR(STR) STR
 #endif
 
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+#include <ch.h>
+#if !CH_USE_HEAP
+#error "Need dynamic heap allocation for some heap allocating action."
+#endif
+#endif
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)

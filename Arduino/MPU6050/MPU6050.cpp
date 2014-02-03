@@ -2964,15 +2964,21 @@ void MPU6050::readMemoryBlock(uint8_t *data, uint16_t dataSize, uint8_t bank, ui
     }
 }
 bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify, bool useProgMem) {
-    setMemoryBank(bank);
+#if false
+	setMemoryBank(bank);
     setMemoryStartAddress(address);
     uint8_t chunkSize;
     uint8_t *verifyBuffer;
     uint8_t *progBuffer;
     uint16_t i;
     uint8_t j;
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+    if (verify) verifyBuffer = (uint8_t *) chHeapAlloc(NULL, MPU6050_DMP_MEMORY_CHUNK_SIZE);
+    if (useProgMem) progBuffer = (uint8_t *)chHeapAlloc(NULL, MPU6050_DMP_MEMORY_CHUNK_SIZE);
+#else
     if (verify) verifyBuffer = (uint8_t *)malloc(MPU6050_DMP_MEMORY_CHUNK_SIZE);
     if (useProgMem) progBuffer = (uint8_t *)malloc(MPU6050_DMP_MEMORY_CHUNK_SIZE);
+#endif
     for (i = 0; i < dataSize;) {
         // determine correct chunk size according to bank position and data size
         chunkSize = MPU6050_DMP_MEMORY_CHUNK_SIZE;
@@ -3016,8 +3022,13 @@ bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t b
                     Serial.print(verifyBuffer[i + j], HEX);
                 }
                 Serial.print("\n");*/
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+            	chHeapFree(verifyBuffer);
+            	if (useProgMem) chHeapFree(progBuffer);
+#else
                 free(verifyBuffer);
                 if (useProgMem) free(progBuffer);
+#endif
                 return false; // uh oh.
             }
         }
@@ -3035,18 +3046,29 @@ bool MPU6050::writeMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t b
             setMemoryStartAddress(address);
         }
     }
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+    if (verify) chHeapFree(verifyBuffer);
+    if (useProgMem) chHeapFree(progBuffer);
+#else
     if (verify) free(verifyBuffer);
     if (useProgMem) free(progBuffer);
+#endif
+#endif
     return true;
 }
 bool MPU6050::writeProgMemoryBlock(const uint8_t *data, uint16_t dataSize, uint8_t bank, uint8_t address, bool verify) {
     return writeMemoryBlock(data, dataSize, bank, address, verify, true);
 }
 bool MPU6050::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, bool useProgMem) {
+#if false
     uint8_t *progBuffer, success, special;
     uint16_t i, j;
     if (useProgMem) {
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+        progBuffer = (uint8_t *)chHeapAlloc(NULL, 8); // assume 8-byte blocks, realloc later if necessary
+#else
         progBuffer = (uint8_t *)malloc(8); // assume 8-byte blocks, realloc later if necessary
+#endif
     }
 
     // config set data is a long string of blocks with the following structure:
@@ -3073,7 +3095,13 @@ bool MPU6050::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, b
             Serial.print(", length=");
             Serial.println(length);*/
             if (useProgMem) {
-                if (sizeof(progBuffer) < length) progBuffer = (uint8_t *)realloc(progBuffer, length);
+                if (sizeof(progBuffer) < length) {
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+                	progBuffer = NULL; // TODO: Fix this, it just fails for now
+#else
+                	progBuffer = (uint8_t *)realloc(progBuffer, length);
+#endif
+                }
                 for (j = 0; j < length; j++) progBuffer[j] = pgm_read_byte(data + i + j);
             } else {
                 progBuffer = (uint8_t *)data + i;
@@ -3110,11 +3138,20 @@ bool MPU6050::writeDMPConfigurationSet(const uint8_t *data, uint16_t dataSize, b
         }
         
         if (!success) {
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+        	if (useProgMem) chHeapFree(progBuffer);
+#else
             if (useProgMem) free(progBuffer);
+#endif
             return false; // uh oh
         }
     }
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+    if (useProgMem) chHeapFree(progBuffer);
+#else
     if (useProgMem) free(progBuffer);
+#endif
+#endif
     return true;
 }
 bool MPU6050::writeProgDMPConfigurationSet(const uint8_t *data, uint16_t dataSize) {

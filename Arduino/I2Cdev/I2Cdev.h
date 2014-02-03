@@ -123,9 +123,6 @@ class I2Cdev {
 
         static uint16_t readTimeout;
 
-#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
-        static uint8_t txBuffer[TX_BUFFER_SIZE];
-#endif
 };
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE

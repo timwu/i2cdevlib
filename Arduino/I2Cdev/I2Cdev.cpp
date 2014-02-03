@@ -601,6 +601,9 @@ bool I2Cdev::writeWord(uint8_t devAddr, uint8_t regAddr, uint16_t data) {
  * @return Status of operation (true = success)
  */
 bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t* data) {
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+	uint8_t txBuffer[TX_BUFFER_SIZE];
+#endif
     #ifdef I2CDEV_SERIAL_DEBUG
         Serial.print("I2C (0x");
         Serial.print(devAddr, HEX);
@@ -620,7 +623,7 @@ bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_
     #elif (I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE)
         Fastwire::beginTransmission(devAddr);
         Fastwire::write(regAddr);
-	#elif (I2CDEV)
+	#elif (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
         if(length + 1 >= TX_BUFFER_SIZE) {
         	return -1;
         }
