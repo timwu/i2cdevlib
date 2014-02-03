@@ -37,7 +37,7 @@ THE SOFTWARE.
 #include "helper_3dmath.h"
 
 // MotionApps 2.0 DMP implementation, built using the MPU-6050EVB evaluation board
-#define MPU6050_INCLUDE_DMP_MOTIONAPPS20
+#ifdef MPU6050_INCLUDE_DMP_MOTIONAPPS20
 
 #include "MPU6050.h"
 
@@ -738,4 +738,5 @@ uint16_t MPU6050::dmpGetFIFOPacketSize() {
     return dmpPacketSize;
 }
 
+#endif /* MPU6050_INCLUDE_DMP_MOTIONAPPS20 */
 #endif /* _MPU6050_6AXIS_MOTIONAPPS20_H_ */

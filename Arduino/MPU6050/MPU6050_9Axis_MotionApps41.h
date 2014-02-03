@@ -37,7 +37,7 @@ THE SOFTWARE.
 #include "helper_3dmath.h"
 
 // MotionApps 4.1 DMP implementation, built using the MPU-9150 "MotionFit" board
-#define MPU6050_INCLUDE_DMP_MOTIONAPPS41
+#ifdef MPU6050_INCLUDE_DMP_MOTIONAPPS41
 
 #include "MPU6050.h"
 
@@ -849,4 +849,5 @@ uint16_t MPU6050::dmpGetFIFOPacketSize() {
     return dmpPacketSize;
 }
 
+#endif /* MPU6050_INCLUDE_DMP_MOTIONAPPS41 */
 #endif /* _MPU6050_9AXIS_MOTIONAPPS41_H_ */
