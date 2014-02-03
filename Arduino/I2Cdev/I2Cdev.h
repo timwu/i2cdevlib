@@ -49,7 +49,7 @@ THE SOFTWARE.
 // -----------------------------------------------------------------------------
 // I2C interface implementation setting
 // -----------------------------------------------------------------------------
-#define I2CDEV_IMPLEMENTATION       I2CDEV_ARDUINO_WIRE
+#define I2CDEV_IMPLEMENTATION       I2CDEV_CHIBI_OS
 //#define I2CDEV_IMPLEMENTATION       I2CDEV_BUILTIN_FASTWIRE
 
 // comment this out if you are using a non-optimal IDE/implementation setting
@@ -70,6 +70,11 @@ THE SOFTWARE.
 // -----------------------------------------------------------------------------
 //#define I2CDEV_SERIAL_DEBUG
 
+// HACK OUT ARDUINO
+#ifdef ARDUINO
+#undef ARDUINO
+#endif
+
 #ifdef ARDUINO
     #if ARDUINO < 100
         #include "WProgram.h"
@@ -82,6 +87,13 @@ THE SOFTWARE.
     #if I2CDEV_IMPLEMENTATION == I2CDEV_I2CMASTER_LIBRARY
         #include <I2C.h>
     #endif
+#endif
+
+#if I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS
+#include <ch.h>
+#include <hal.h>
+#include <i2c.h>
+#define TX_BUFFER_SIZE 128
 #endif
 
 // 1000ms default read timeout (modify with "I2Cdev::readTimeout = [ms];")
@@ -110,6 +122,10 @@ class I2Cdev {
         static bool writeWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint16_t *data);
 
         static uint16_t readTimeout;
+
+#if (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+        static uint8_t txBuffer[TX_BUFFER_SIZE];
+#endif
 };
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE

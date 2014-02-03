@@ -215,7 +215,10 @@ int8_t I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8
     #endif
 
     int8_t count = 0;
+
+    #if (I2CDEV_IMPLEMENTATION != I2CDEV_CHIBI_OS)
     uint32_t t1 = millis();
+	#endif
 
     #if (I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE)
 
@@ -301,10 +304,20 @@ int8_t I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8
             count = -1; // error
         }
 
-    #endif
+    #elif (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
 
+        if (i2cMasterTransmitTimeout(&I2CD1, devAddr, &devAddr, 1, data, length, MS2ST(timeout)) != RDY_OK) {
+        	return -1;
+        }
+
+        count = length;
+
+	#endif
+
+    #if (I2CDEV_IMPLEMENTATION != I2CDEV_CHIBI_OS)
     // check for timeout
     if (timeout > 0 && millis() - t1 >= timeout && count < length) count = -1; // timeout
+    #endif
 
     #ifdef I2CDEV_SERIAL_DEBUG
         Serial.print(". Done (");
@@ -335,7 +348,10 @@ int8_t I2Cdev::readWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint1
     #endif
 
     int8_t count = 0;
+
+	#if (I2CDEV_IMPLEMENTATION != I2CDEV_CHIBI_OS)
     uint32_t t1 = millis();
+	#endif
 
     #if (I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE)
 
@@ -454,9 +470,13 @@ int8_t I2Cdev::readWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint1
             count = -1; // error
         }
 
+    #elif (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBIOS)
+        return readBytes(devAddr, regAddr, (length * 2), (uint8_t *) data, timeout);
     #endif
 
+    #if (I2CDEV_IMPLEMENTATION != I2CDEV_CHIBI_OS)
     if (timeout > 0 && millis() - t1 >= timeout && count < length) count = -1; // timeout
+    #endif
 
     #ifdef I2CDEV_SERIAL_DEBUG
         Serial.print(". Done (");
@@ -600,6 +620,11 @@ bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_
     #elif (I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE)
         Fastwire::beginTransmission(devAddr);
         Fastwire::write(regAddr);
+	#elif (I2CDEV)
+        if(length + 1 >= TX_BUFFER_SIZE) {
+        	return -1;
+        }
+        txBuffer[0] = regAddr;
     #endif
     for (uint8_t i = 0; i < length; i++) {
         #ifdef I2CDEV_SERIAL_DEBUG
@@ -612,6 +637,8 @@ bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_
             Wire.write((uint8_t) data[i]);
         #elif (I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE)
             Fastwire::write((uint8_t) data[i]);
+		#elif (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+            txBuffer[i+1] = data[i];
         #endif
     }
     #if ((I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE && ARDUINO < 100) || I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_NBWIRE)
@@ -621,6 +648,8 @@ bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_
     #elif (I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE)
         Fastwire::stop();
         //status = Fastwire::endTransmission();
+	#elif (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
+        status = i2cMasterTransmit(&I2CD1, devAddr, txBuffer, length + 1, NULL, 0) == RDY_OK;
     #endif
     #ifdef I2CDEV_SERIAL_DEBUG
         Serial.println(". Done.");
@@ -645,6 +674,7 @@ bool I2Cdev::writeWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint16
         Serial.print(regAddr, HEX);
         Serial.print("...");
     #endif
+#if (I2CDEV_IMPLEMENTATION != I2CDEV_CHIBI_OS)
     uint8_t status = 0;
     #if ((I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE && ARDUINO < 100) || I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_NBWIRE)
         Wire.beginTransmission(devAddr);
@@ -685,6 +715,9 @@ bool I2Cdev::writeWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint16
         Serial.println(". Done.");
     #endif
     return status == 0;
+#else
+    return writeBytes(devAddr, regAddr, length * 2, (uint8_t*) data);
+#endif
 }
 
 /** Default timeout value for read operations.
