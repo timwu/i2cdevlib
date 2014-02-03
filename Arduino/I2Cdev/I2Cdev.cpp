@@ -306,7 +306,7 @@ int8_t I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8
 
     #elif (I2CDEV_IMPLEMENTATION == I2CDEV_CHIBI_OS)
 
-        if (i2cMasterTransmitTimeout(&I2CD1, devAddr, &devAddr, 1, data, length, MS2ST(timeout)) != RDY_OK) {
+        if (i2cMasterTransmitTimeout(&I2CD1, devAddr, &regAddr, 1, data, length, MS2ST(timeout)) != RDY_OK) {
         	return -1;
         }
 
